@@ -167,7 +167,7 @@ export default function WordsPage() {
               key={w.id}
               className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between"
             >
-              <div>
+              <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="font-[family-name:var(--font-display)] text-xl font-semibold text-ink">
                     {w.text}
@@ -249,13 +249,21 @@ export default function WordsPage() {
                   )}
                 </div>
               </div>
+              <div className="flex shrink-0 flex-col items-end gap-2 self-start">
+              <Link
+                href={`/words/${w.id}`}
+                className="text-sm text-ink-soft underline-offset-2 hover:text-ink hover:underline"
+              >
+                Edit
+              </Link>
               <button
                 type="button"
                 onClick={() => void remove(w.id)}
-                className="shrink-0 self-start text-sm text-bad underline-offset-2 hover:underline"
+                className="text-sm text-bad underline-offset-2 hover:underline"
               >
                 Delete
               </button>
+              </div>
             </li>
           ))}
         </ul>
