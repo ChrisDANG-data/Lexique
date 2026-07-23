@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Language {
+  EN
+  FR
+}
+
+enum FrenchGender {
+  M
+  F
+  N
+}
+
+enum ReviewResult {
+  PASS
+  FAIL
+}
+
+enum PartOfSpeech {
+  N
+  V
+  ADJ
+  ADV
+  PREP
+  CONJ
+  PRON
+  DET
+  INTERJ
+  PHRASE
+  OTHER
+}
+
+model Word {
+  id             String        @id @default(cuid())
+  /// Original user input (word or multi-word phrase)
+  text           String
+  /// Normalized key for dedupe (lowercase, trimmed, collapsed spaces)
+  lemma          String
+  language       Language
+  pos            PartOfSpeech  @default(OTHER)
+  definition     String
+  examples       String[]
+  synonyms       String[]
+  antonyms       String[]
+  translationEn  String?
+  translationFr  String?
+  translationZh  String
+  gender         FrenchGender?
+  /// User mnemonic / personal memory note
+  note           String        @default("")
+  tags           String[]      @default([])
+
+  /// SRS (Anki-style SM-2 simplified)
+  easeFactor     Float         @default(2.5)
+  intervalDays   Int           @default(0)
+  repetitions    Int           @default(0)
+  dueAt          DateTime      @default(now())
+  failCount      Int           @default(0)
+  isFailed       Boolean       @default(false)
+  lastResult     ReviewResult?
+  lastReviewedAt DateTime?
+
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  reviews        Review[]
+
+  @@unique([lemma, language])
+  @@index([language])
+  @@index([pos])
+  @@index([isFailed])
+  @@index([dueAt])
+  @@index([createdAt])
+  @@index([tags])
+}
+
+model Review {
+  id         String       @id @default(cuid())
+  wordId     String
+  word       Word         @relation(fields: [wordId], references: [id], onDelete: Cascade)
+  result     ReviewResult
+  userAnswer String
+  createdAt  DateTime     @default(now())
+
+  @@index([wordId])
+  @@index([createdAt])
+}

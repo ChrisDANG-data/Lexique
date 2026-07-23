@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Lex Dual — FR / EN Vocabulary
 
-## Getting Started
+Learn French and English vocabulary with LLM enrichment, PostgreSQL storage, flashcard tests, and Anki-style spaced repetition.
 
-First, run the development server:
+## Stack
+
+- Next.js (App Router) on Vercel
+- PostgreSQL via Prisma 7
+- OpenAI-compatible LLM (Ollama local or cloud)
+
+## Setup
+
+1. Copy `.env.example` to `.env`.
+2. In [Neon](https://console.neon.tech) → your project → **Connection details**, copy the Postgres connection string into `DATABASE_URL` (include `?sslmode=require`). Prefer the **direct** (non-pooler) URL for `prisma migrate`.
+3. Set `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`.
+4. Install and migrate:
 
 ```bash
+npm install
+npx prisma migrate dev --name init
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. For a local LLM with Ollama:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+ollama pull llama3.2
+# LLM_BASE_URL=http://127.0.0.1:11434/v1
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## V1 features
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Add word/phrase → detect EN/FR (same spelling → EN) → reject typos → enrich → upsert
+- French gender, definitions, examples, synonyms, antonyms, FR/EN + ZH translations
+- Study session of 20: show definition → type the word (exact match), failed prioritized, SM-2 SRS
+- Browse/search/filter; CSV + Anki TSV import/export

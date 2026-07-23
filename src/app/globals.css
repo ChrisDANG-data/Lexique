@@ -1,26 +1,69 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --ink: #0b3d4a;
+  --ink-soft: #1a5a6b;
+  --paper: #f3f0e8;
+  --paper-deep: #e6e0d2;
+  --accent: #1a6b7a;
+  --accent-soft: #7ab0bb;
+  --line: #c9c0b0;
+  --ok: #2f6b4f;
+  --bad: #9b2c2c;
+  --background: var(--paper);
+  --foreground: var(--ink);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-paper: var(--paper);
+  --color-paper-deep: var(--paper-deep);
+  --color-accent: var(--accent);
+  --color-line: var(--line);
+  --color-ok: var(--ok);
+  --color-bad: var(--bad);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(ellipse 80% 50% at 10% -10%, #dce8eb 0%, transparent 55%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, #f0dcc8 0%, transparent 45%),
+    linear-gradient(165deg, #f7f4ee 0%, #ebe4d6 100%);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), Georgia, serif;
+  min-height: 100vh;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes flip-hint {
+  0%,
+  100% {
+    transform: rotateY(0deg);
+  }
+  50% {
+    transform: rotateY(4deg);
+  }
+}
+
+.animate-rise {
+  animation: rise-in 0.45s ease-out both;
+}
+
+.animate-card {
+  animation: rise-in 0.35s ease-out both, flip-hint 8s ease-in-out infinite;
 }
