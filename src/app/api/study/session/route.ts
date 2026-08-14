@@ -1,13 +1,27 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { SESSION_SIZE, toStudyPrompt } from "@/lib/words";
+import { buildWordWhere, SESSION_SIZE, toStudyPrompt } from "@/lib/words";
+import { PartOfSpeech } from "@/generated/prisma/client";
 
 /** Build a 20-card session: failed first, then due, then newest. */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const sp = req.nextUrl.searchParams;
+  const language =
+    sp.get("language") === "EN" || sp.get("language") === "FR"
+      ? sp.get("language")
+      : undefined;
+  const pos = sp.get("pos");
+  const tag = sp.get("tag") ?? undefined;
+  const baseWhere = buildWordWhere({ language: language as any, tag });
+
+  if (pos && Object.values(PartOfSpeech).includes(pos as PartOfSpeech)) {
+    baseWhere.pos = pos as PartOfSpeech;
+  }
+
   const now = new Date();
 
   const failed = await prisma.word.findMany({
-    where: { isFailed: true },
+    where: { ...baseWhere, isFailed: true },
     orderBy: [{ failCount: "desc" }, { dueAt: "asc" }],
     take: SESSION_SIZE,
   });
@@ -19,6 +33,7 @@ export async function GET() {
     remaining > 0
       ? await prisma.word.findMany({
           where: {
+            ...baseWhere,
             isFailed: false,
             dueAt: { lte: now },
             id: { notIn: failedIds },
@@ -34,7 +49,7 @@ export async function GET() {
   const filler =
     stillNeed > 0
       ? await prisma.word.findMany({
-          where: { id: { notIn: usedIds } },
+          where: { ...baseWhere, id: { notIn: usedIds } },
           orderBy: { createdAt: "desc" },
           take: stillNeed,
         })

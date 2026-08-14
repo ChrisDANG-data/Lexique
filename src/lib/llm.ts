@@ -182,6 +182,26 @@ function missingFields(e: EnrichmentResult): string[] {
   return missing;
 }
 
+function applyLanguageFallback(
+  text: string,
+  result: EnrichmentResult,
+  languageOverride?: "EN" | "FR",
+): EnrichmentResult {
+  if (!languageOverride || !result.valid || !result.language) {
+    return result;
+  }
+
+  if (languageOverride === "FR" && result.language === "FR" && !result.translationEn) {
+    return { ...result, translationEn: text.trim() || result.translationEn || null };
+  }
+
+  if (languageOverride === "EN" && result.language === "EN" && !result.translationFr) {
+    return { ...result, translationFr: text.trim() || result.translationFr || null };
+  }
+
+  return result;
+}
+
 export async function enrichEntry(
   text: string,
   languageOverride?: "EN" | "FR",
@@ -200,6 +220,7 @@ export async function enrichEntry(
 
   let result = normalizeEnrichment(EnrichmentSchema.parse(await chatJson(SYSTEM, user)));
   if (posOverride) result = { ...result, pos: posOverride };
+  result = applyLanguageFallback(text, result, languageOverride);
 
   let missing = missingFields(result);
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Source_Sans_3 } from "next/font/google";
 import { AppHeader } from "@/components/AppHeader";
+import { Providers } from "@/components/Providers";
 import "./globals.css";
 
 const display = Fraunces({
@@ -28,10 +29,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${display.variable} ${body.variable} h-full`}>
       <body className="min-h-full antialiased">
-        <AppHeader />
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
-          {children}
-        </main>
+        <Providers>
+          <AppHeader />
+          <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
+            {children}
+          </main>
+        </Providers>
       </body>
     </html>
   );

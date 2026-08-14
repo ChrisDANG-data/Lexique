@@ -1,7 +1,7 @@
 "use client";
 
 import { SpeakButton } from "@/components/SpeakButton";
-import { formatPos } from "@/lib/pos";
+import { formatPos, POS_OPTIONS } from "@/lib/pos";
 import { FormEvent, useEffect, useState } from "react";
 
 type Card = {
@@ -33,6 +33,9 @@ export default function StudyPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [stats, setStats] = useState({ pass: 0, fail: 0 });
+  const [languageFilter, setLanguageFilter] = useState("");
+  const [posFilter, setPosFilter] = useState("");
+  const [tagFilter, setTagFilter] = useState("");
 
   async function loadSession() {
     setLoading(true);
@@ -40,7 +43,13 @@ export default function StudyPage() {
     setIndex(0);
     setAnswer("");
     setStats({ pass: 0, fail: 0 });
-    const res = await fetch("/api/study/session");
+
+    const params = new URLSearchParams();
+    if (languageFilter) params.set("language", languageFilter);
+    if (posFilter) params.set("pos", posFilter);
+    if (tagFilter) params.set("tag", tagFilter);
+
+    const res = await fetch(`/api/study/session?${params}`);
     const data = await res.json();
     setCards(data.cards ?? []);
     setLoading(false);
@@ -48,7 +57,7 @@ export default function StudyPage() {
 
   useEffect(() => {
     void loadSession();
-  }, []);
+  }, [languageFilter, posFilter, tagFilter]);
 
   const card = cards[index];
   const done = !loading && cards.length > 0 && index >= cards.length;
@@ -84,35 +93,96 @@ export default function StudyPage() {
     setIndex((i) => i + 1);
   }
 
+  const filterControls = (
+    <div className="grid gap-3 border border-line bg-paper/70 p-4 sm:grid-cols-2 lg:grid-cols-3">
+      <select
+        value={languageFilter}
+        onChange={(e) => setLanguageFilter(e.target.value)}
+        className="border border-line bg-paper px-3 py-2 outline-none ring-ink/20 focus:ring-2"
+      >
+        <option value="">All languages</option>
+        <option value="EN">English</option>
+        <option value="FR">French</option>
+      </select>
+      <select
+        value={posFilter}
+        onChange={(e) => setPosFilter(e.target.value)}
+        className="border border-line bg-paper px-3 py-2 outline-none ring-ink/20 focus:ring-2"
+      >
+        <option value="">All word types</option>
+        {POS_OPTIONS.filter((o) => o.value).map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+      <input
+        value={tagFilter}
+        onChange={(e) => setTagFilter(e.target.value)}
+        placeholder="Tag / category"
+        className="border border-line bg-paper px-3 py-2 outline-none ring-ink/20 focus:ring-2"
+      />
+    </div>
+  );
+
   if (loading) {
-    return <p className="text-ink-soft">Preparing session…</p>;
+    return (
+      <div className="animate-rise mx-auto max-w-xl space-y-6">
+        <header className="flex items-end justify-between gap-4">
+          <div>
+            <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold text-ink">
+              Study
+            </h1>
+          </div>
+        </header>
+        {filterControls}
+        <p className="text-ink-soft">Preparing session…</p>
+      </div>
+    );
   }
 
   if (cards.length === 0) {
     return (
-      <div className="animate-rise space-y-3">
-        <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold">Study</h1>
-        <p className="text-ink-soft">No words in the database yet. Add some first.</p>
+      <div className="animate-rise mx-auto max-w-xl space-y-6">
+        <header className="flex items-end justify-between gap-4">
+          <div>
+            <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold text-ink">
+              Study
+            </h1>
+          </div>
+        </header>
+        {filterControls}
+        <p className="text-ink-soft">No words match the current filters. Add some first or change the selection.</p>
       </div>
     );
   }
 
   if (done) {
     return (
-      <div className="animate-rise space-y-4">
-        <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold">
-          Session complete
-        </h1>
-        <p className="text-lg text-ink-soft">
-          Passed {stats.pass} · Failed {stats.fail} · Total {cards.length}
-        </p>
-        <button
-          type="button"
-          onClick={() => void loadSession()}
-          className="bg-ink px-5 py-2.5 text-sm font-semibold text-paper hover:bg-ink-soft"
-        >
-          New session
-        </button>
+      <div className="animate-rise mx-auto max-w-xl space-y-6">
+        <header className="flex items-end justify-between gap-4">
+          <div>
+            <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold text-ink">
+              Study
+            </h1>
+          </div>
+        </header>
+        {filterControls}
+        <div className="animate-card border border-line bg-paper/95 p-6 shadow-[0_12px_40px_-24px_rgba(11,61,74,0.45)] space-y-4">
+          <h2 className="font-[family-name:var(--font-display)] text-3xl font-semibold">
+            Session complete
+          </h2>
+          <p className="text-lg text-ink-soft">
+            Passed {stats.pass} · Failed {stats.fail} · Total {cards.length}
+          </p>
+          <button
+            type="button"
+            onClick={() => void loadSession()}
+            className="bg-ink px-5 py-2.5 text-sm font-semibold text-paper hover:bg-ink-soft"
+          >
+            New session
+          </button>
+        </div>
       </div>
     );
   }
@@ -132,6 +202,8 @@ export default function StudyPage() {
           ✓ {stats.pass} · ✗ {stats.fail}
         </p>
       </header>
+
+      {filterControls}
 
       <div className="animate-card border border-line bg-paper/95 p-6 shadow-[0_12px_40px_-24px_rgba(11,61,74,0.45)]">
         <p className="text-xs font-semibold tracking-[0.2em] text-ink-soft uppercase">

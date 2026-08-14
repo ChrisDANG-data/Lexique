@@ -37,6 +37,15 @@ enum PartOfSpeech {
   OTHER
 }
 
+model User {
+  id           String   @id @default(cuid())
+  /// Lowercase login key
+  username     String   @unique
+  displayName  String
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
 model Word {
   id             String        @id @default(cuid())
   /// Original user input (word or multi-word phrase)

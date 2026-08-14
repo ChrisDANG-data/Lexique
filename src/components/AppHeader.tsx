@@ -1,8 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { SignOutButton } from "@/components/SignOutButton";
 
 const nav = [
   { href: "/", label: "Add" },
@@ -12,13 +10,10 @@ const nav = [
 ];
 
 export function AppHeader() {
-  const pathname = usePathname();
-  if (pathname === "/login") return null;
-
   return (
     <header className="border-b border-line/70 bg-paper/70 backdrop-blur-sm">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-        <Link href="/" className="group">
+      <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <Link href="/" className="group shrink-0">
           <p className="font-[family-name:var(--font-display)] text-2xl font-semibold tracking-tight text-ink transition group-hover:text-ink-soft">
             Lex Dual
           </p>
@@ -26,7 +21,8 @@ export function AppHeader() {
             FR · EN · 中文
           </p>
         </Link>
-        <nav className="flex flex-wrap items-center gap-1 sm:gap-2">
+
+        <nav className="flex flex-wrap items-center gap-1">
           {nav.map((item) => (
             <Link
               key={item.href}
@@ -36,7 +32,6 @@ export function AppHeader() {
               {item.label}
             </Link>
           ))}
-          <SignOutButton />
         </nav>
       </div>
     </header>

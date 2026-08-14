@@ -1,5 +1,7 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import { getAuthSecret } from "@/lib/auth-defaults";
+import { authenticateOrRegister } from "@/lib/user-auth";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -12,22 +14,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       async authorize(credentials) {
         const username = credentials?.username;
         const password = credentials?.password;
-        const expectedUser = process.env.AUTH_USERNAME;
-        const expectedPass = process.env.AUTH_PASSWORD;
 
-        if (!expectedUser || !expectedPass) {
-          throw new Error("Auth is not configured (AUTH_USERNAME / AUTH_PASSWORD)");
+        if (typeof username !== "string" || typeof password !== "string") {
+          return null;
         }
 
-        if (
-          typeof username === "string" &&
-          typeof password === "string" &&
-          username === expectedUser &&
-          password === expectedPass
-        ) {
-          return { id: "owner", name: username };
-        }
-        return null;
+        return authenticateOrRegister(username, password);
       },
     }),
   ],
@@ -37,6 +29,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   session: {
     strategy: "jwt",
   },
+  callbacks: {
+    jwt({ token, user }) {
+      if (user) {
+        token.sub = user.id;
+        token.name = user.name;
+      }
+      return token;
+    },
+    session({ session, token }) {
+      if (session.user) {
+        session.user.name = token.name ?? session.user.name;
+      }
+      return session;
+    },
+  },
   trustHost: true,
-  secret: process.env.AUTH_SECRET,
+  secret: getAuthSecret(),
 });

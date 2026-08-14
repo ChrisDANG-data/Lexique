@@ -31,13 +31,13 @@ ollama pull llama3.2
 
 ## Auth
 
-Set these in `.env` (local) and Vercel → Environment Variables:
+Accounts are stored in the database.
 
-- `AUTH_SECRET` — long random string
-- `AUTH_USERNAME` — your login name
-- `AUTH_PASSWORD` — your password
+- **Existing username** → sign in with your password  
+- **New username** → enter username + password; account is **created automatically** on first sign-in  
+- Suggested first account: `admin` / `lexique` (pre-filled on `/login`)
 
-Without them, the app redirects everyone to `/login`.
+Optional: set `AUTH_SECRET` on Vercel for a custom JWT secret.
 
 ## V1 features
 
