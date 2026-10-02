@@ -44,17 +44,27 @@ export default function StudyPage() {
     async function loadTagOptions() {
       try {
         const res = await fetch("/api/words?limit=500");
+  
         if (!res.ok) return;
-        const data = await res.json();
+  
+        const data: {
+          words?: Array<{
+            tags?: string[];
+          }>;
+        } = await res.json();
+  
         const tags = Array.from(
-          new Set((data.words ?? []).flatMap((word: { tags?: string[] }) => word.tags ?? [])),
+          new Set(
+            (data.words ?? []).flatMap((word) => word.tags ?? [])
+          )
         ).sort((a, b) => a.localeCompare(b));
+  
         setTagOptions(tags);
       } catch {
         setTagOptions([]);
       }
     }
-
+  
     void loadTagOptions();
   }, []);
 
