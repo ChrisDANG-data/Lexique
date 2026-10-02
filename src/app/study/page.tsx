@@ -36,6 +36,32 @@ export default function StudyPage() {
   const [languageFilter, setLanguageFilter] = useState("");
   const [posFilter, setPosFilter] = useState("");
   const [tagFilter, setTagFilter] = useState("");
+  const [qInput, setQInput] = useState("");
+  const [qFilter, setQFilter] = useState("");
+  const [tagOptions, setTagOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    async function loadTagOptions() {
+      try {
+        const res = await fetch("/api/words?limit=500");
+        if (!res.ok) return;
+        const data = await res.json();
+        const tags = Array.from(
+          new Set((data.words ?? []).flatMap((word: { tags?: string[] }) => word.tags ?? [])),
+        ).sort((a, b) => a.localeCompare(b));
+        setTagOptions(tags);
+      } catch {
+        setTagOptions([]);
+      }
+    }
+
+    void loadTagOptions();
+  }, []);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => setQFilter(qInput.trim()), 350);
+    return () => window.clearTimeout(handle);
+  }, [qInput]);
 
   async function loadSession() {
     setLoading(true);
@@ -48,6 +74,7 @@ export default function StudyPage() {
     if (languageFilter) params.set("language", languageFilter);
     if (posFilter) params.set("pos", posFilter);
     if (tagFilter) params.set("tag", tagFilter);
+    if (qFilter) params.set("q", qFilter);
 
     const res = await fetch(`/api/study/session?${params}`);
     const data = await res.json();
@@ -57,7 +84,7 @@ export default function StudyPage() {
 
   useEffect(() => {
     void loadSession();
-  }, [languageFilter, posFilter, tagFilter]);
+  }, [languageFilter, posFilter, tagFilter, qFilter]);
 
   const card = cards[index];
   const done = !loading && cards.length > 0 && index >= cards.length;
@@ -94,7 +121,7 @@ export default function StudyPage() {
   }
 
   const filterControls = (
-    <div className="grid gap-3 border border-line bg-paper/70 p-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-3 border border-line bg-paper/70 p-4 sm:grid-cols-2">
       <select
         value={languageFilter}
         onChange={(e) => setLanguageFilter(e.target.value)}
@@ -116,10 +143,22 @@ export default function StudyPage() {
           </option>
         ))}
       </select>
-      <input
+      <select
         value={tagFilter}
         onChange={(e) => setTagFilter(e.target.value)}
-        placeholder="Tag / category"
+        className="border border-line bg-paper px-3 py-2 outline-none ring-ink/20 focus:ring-2"
+      >
+        <option value="">All tags / categories</option>
+        {tagOptions.map((tag) => (
+          <option key={tag} value={tag}>
+            {tag}
+          </option>
+        ))}
+      </select>
+      <input
+        value={qInput}
+        onChange={(e) => setQInput(e.target.value)}
+        placeholder="Search word, definition, translation…"
         className="border border-line bg-paper px-3 py-2 outline-none ring-ink/20 focus:ring-2"
       />
     </div>

@@ -12,7 +12,8 @@ export async function GET(req: NextRequest) {
       : undefined;
   const pos = sp.get("pos");
   const tag = sp.get("tag") ?? undefined;
-  const baseWhere = buildWordWhere({ language: language as any, tag });
+  const q = sp.get("q") ?? undefined;
+  const baseWhere = buildWordWhere({ language: language as any, tag, q });
 
   if (pos && Object.values(PartOfSpeech).includes(pos as PartOfSpeech)) {
     baseWhere.pos = pos as PartOfSpeech;
