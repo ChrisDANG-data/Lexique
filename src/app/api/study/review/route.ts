@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getUserId, unauthorized } from "@/lib/session";
-import { answersMatch } from "@/lib/normalize";
+import { gradeAnswer } from "@/lib/normalize";
 import { applySrs } from "@/lib/srs";
 import { ReviewResult } from "@/generated/prisma/client";
 
@@ -21,7 +21,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
 
-    const passed = answersMatch(word.text, body.answer);
+    // Missing/wrong accents still count as a pass; the UI points them out.
+    const verdict = gradeAnswer(word.text, body.answer);
+    const passed = verdict !== "wrong";
 
     const srs = applySrs(
       {
@@ -57,6 +59,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       passed,
+      verdict,
+      userAnswer: body.answer,
       expectedWord: word.text,
       definition: word.definition,
       pos: word.pos,

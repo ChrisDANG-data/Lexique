@@ -1,8 +1,33 @@
 "use client";
 
+import { AccentKeyboard } from "@/components/AccentKeyboard";
+import { GenderDrill } from "@/components/GenderDrill";
 import { SpeakButton } from "@/components/SpeakButton";
+import { normalizeAnswer } from "@/lib/normalize";
 import { formatPos, POS_OPTIONS } from "@/lib/pos";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
+
+type Mode = "type" | "gender";
+
+/** Expected word with the letters whose accents differ from the user's answer highlighted. */
+function AccentDiff({ expected, typed }: { expected: string; typed: string }) {
+  const e = Array.from(normalizeAnswer(expected));
+  const t = Array.from(normalizeAnswer(typed));
+  if (e.length !== t.length) return <span>{normalizeAnswer(expected)}</span>;
+  return (
+    <span>
+      {e.map((ch, i) =>
+        ch === t[i] ? (
+          <span key={i}>{ch}</span>
+        ) : (
+          <mark key={i} className="bg-transparent font-bold text-bad underline underline-offset-4">
+            {ch}
+          </mark>
+        ),
+      )}
+    </span>
+  );
+}
 
 type Card = {
   id: string;
@@ -15,6 +40,8 @@ type Card = {
 
 type Grade = {
   passed: boolean;
+  verdict?: "exact" | "accents" | "wrong";
+  userAnswer?: string;
   expectedWord: string;
   definition: string;
   pos: string;
@@ -26,6 +53,8 @@ type Grade = {
 };
 
 export default function StudyPage() {
+  const [mode, setMode] = useState<Mode>("type");
+  const answerRef = useRef<HTMLInputElement>(null);
   const [cards, setCards] = useState<Card[]>([]);
   const [index, setIndex] = useState(0);
   const [answer, setAnswer] = useState("");
@@ -174,6 +203,67 @@ export default function StudyPage() {
     </div>
   );
 
+  const modeTabs = (
+    <div className="flex border border-line" role="tablist">
+      {(
+        [
+          ["type", "Type the word"],
+          ["gender", "Gender: le / la"],
+        ] as const
+      ).map(([value, label]) => (
+        <button
+          key={value}
+          type="button"
+          role="tab"
+          aria-selected={mode === value}
+          onClick={() => setMode(value)}
+          className={`flex-1 px-4 py-2 text-sm font-semibold transition ${
+            mode === value ? "bg-ink text-paper" : "bg-paper text-ink-soft hover:bg-paper-deep"
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (mode === "gender") {
+    return (
+      <div className="animate-rise mx-auto max-w-xl space-y-6">
+        <header>
+          <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold text-ink">
+            Study
+          </h1>
+          <p className="text-sm text-ink-soft">
+            Pick the article for each French noun · keys 1 / 2, Enter for next
+          </p>
+        </header>
+        {modeTabs}
+        <div className="grid gap-3 border border-line bg-paper/70 p-4 sm:grid-cols-2">
+          <select
+            value={tagFilter}
+            onChange={(e) => setTagFilter(e.target.value)}
+            className="border border-line bg-paper px-3 py-2 outline-none ring-ink/20 focus:ring-2"
+          >
+            <option value="">All tags / categories</option>
+            {tagOptions.map((tag) => (
+              <option key={tag} value={tag}>
+                {tag}
+              </option>
+            ))}
+          </select>
+          <input
+            value={qInput}
+            onChange={(e) => setQInput(e.target.value)}
+            placeholder="Search word, definition, translation…"
+            className="border border-line bg-paper px-3 py-2 outline-none ring-ink/20 focus:ring-2"
+          />
+        </div>
+        <GenderDrill tag={tagFilter} q={qFilter} />
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="animate-rise mx-auto max-w-xl space-y-6">
@@ -184,6 +274,7 @@ export default function StudyPage() {
             </h1>
           </div>
         </header>
+        {modeTabs}
         {filterControls}
         <p className="text-ink-soft">Preparing session…</p>
       </div>
@@ -200,6 +291,7 @@ export default function StudyPage() {
             </h1>
           </div>
         </header>
+        {modeTabs}
         {filterControls}
         <p className="text-ink-soft">No words match the current filters. Add some first or change the selection.</p>
       </div>
@@ -216,6 +308,7 @@ export default function StudyPage() {
             </h1>
           </div>
         </header>
+        {modeTabs}
         {filterControls}
         <div className="animate-card border border-line bg-paper/95 p-6 shadow-[0_12px_40px_-24px_rgba(11,61,74,0.45)] space-y-4">
           <h2 className="font-[family-name:var(--font-display)] text-3xl font-semibold">
@@ -244,7 +337,7 @@ export default function StudyPage() {
             Study
           </h1>
           <p className="text-sm text-ink-soft">
-            Card {index + 1} of {cards.length} · type the word · exact match
+            Card {index + 1} of {cards.length} · type the word · accents are checked
           </p>
         </div>
         <p className="text-sm text-ink-soft">
@@ -252,6 +345,7 @@ export default function StudyPage() {
         </p>
       </header>
 
+      {modeTabs}
       {filterControls}
 
       <div className="animate-card border border-line bg-paper/95 p-6 shadow-[0_12px_40px_-24px_rgba(11,61,74,0.45)]">
@@ -267,6 +361,7 @@ export default function StudyPage() {
             <label className="block">
               <span className="text-sm font-semibold text-ink">Type the word / phrase</span>
               <input
+                ref={answerRef}
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
                 autoFocus
@@ -277,6 +372,9 @@ export default function StudyPage() {
                 className="mt-1 w-full border border-line bg-paper px-3 py-2.5 text-lg outline-none ring-ink/20 focus:ring-2"
               />
             </label>
+            {card.language === "FR" && (
+              <AccentKeyboard inputRef={answerRef} value={answer} onChange={setAnswer} />
+            )}
             <button
               type="submit"
               disabled={submitting}
@@ -288,8 +386,25 @@ export default function StudyPage() {
         ) : (
           <div className="mt-6 space-y-3">
             <p className={`text-lg font-semibold ${grade.passed ? "text-ok" : "text-bad"}`}>
-              {grade.passed ? "Passed" : "Failed — prioritized next time"}
+              {grade.verdict === "accents"
+                ? "Passed — but check the accents"
+                : grade.passed
+                  ? "Passed"
+                  : "Failed — prioritized next time"}
             </p>
+            {grade.verdict === "accents" && grade.userAnswer !== undefined && (
+              <div className="border-l-2 border-bad/60 pl-3 text-sm text-ink-soft">
+                <p>
+                  You typed: <span className="text-ink">{grade.userAnswer}</span>
+                </p>
+                <p>
+                  Correct spelling:{" "}
+                  <span className="text-base text-ink">
+                    <AccentDiff expected={grade.expectedWord} typed={grade.userAnswer} />
+                  </span>
+                </p>
+              </div>
+            )}
             <p className="font-[family-name:var(--font-display)] text-3xl font-semibold text-ink">
               {grade.expectedWord}
               <span className="ml-2 text-base font-medium text-ink-soft">
