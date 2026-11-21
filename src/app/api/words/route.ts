@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { getUserId, unauthorized } from "@/lib/session";
 import { enrichEntry } from "@/lib/llm";
 import { normalizeLemma } from "@/lib/normalize";
 import { buildWordWhere } from "@/lib/words";
 import { FrenchGender, Language, PartOfSpeech } from "@/generated/prisma/client";
 
 export async function GET(req: NextRequest) {
+  const userId = await getUserId();
+  if (!userId) return unauthorized();
   const sp = req.nextUrl.searchParams;
   const languageParam = sp.get("language");
   const language =
@@ -18,6 +21,7 @@ export async function GET(req: NextRequest) {
   const createdTo = sp.get("createdTo");
 
   const where = buildWordWhere({
+    userId,
     q: sp.get("q") ?? undefined,
     language,
     failedOnly: sp.get("failedOnly") === "1",
@@ -64,6 +68,8 @@ const BodySchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const userId = await getUserId();
+    if (!userId) return unauthorized();
     const body = BodySchema.parse(await req.json());
     const text = body.text.trim().replace(/\s+/g, " ");
     const enrichment = await enrichEntry(
@@ -113,6 +119,7 @@ export async function POST(req: NextRequest) {
     const pos = (enrichment.pos ?? body.posOverride ?? "OTHER") as PartOfSpeech;
 
     const data = {
+      userId,
       text,
       lemma,
       language,
@@ -130,7 +137,7 @@ export async function POST(req: NextRequest) {
     };
 
     const word = await prisma.word.upsert({
-      where: { lemma_language: { lemma, language } },
+      where: { userId_lemma_language: { userId, lemma, language } },
       create: data,
       update: {
         text: data.text,

@@ -1,66 +1,75 @@
 import bcrypt from "bcryptjs";
-import {
-  DEFAULT_AUTH_PASSWORD,
-  DEFAULT_AUTH_USERNAME,
-  getAuthPassword,
-  getAuthUsername,
-} from "@/lib/auth-defaults";
+import { z } from "zod";
 import { prisma } from "@/lib/db";
 
-const MIN_PASSWORD_LENGTH = 3;
+export const USERNAME_MIN = 3;
+export const USERNAME_MAX = 32;
+export const PASSWORD_MIN = 8;
+export const PASSWORD_MAX = 128;
 
 export function normalizeUsername(username: string): string {
   return username.trim().toLowerCase();
 }
 
-export async function authenticateOrRegister(
-  username: string,
-  password: string,
-): Promise<{ id: string; name: string } | null> {
-  const displayName = username.trim();
-  const key = normalizeUsername(username);
+export const RegisterSchema = z.object({
+  username: z
+    .string()
+    .trim()
+    .min(USERNAME_MIN, `Username must be at least ${USERNAME_MIN} characters`)
+    .max(USERNAME_MAX, `Username must be at most ${USERNAME_MAX} characters`)
+    .regex(
+      /^[A-Za-z0-9_.-]+$/,
+      "Username may only contain letters, numbers, dot, dash and underscore",
+    ),
+  displayName: z.string().trim().max(64).optional(),
+  password: z
+    .string()
+    .min(PASSWORD_MIN, `Password must be at least ${PASSWORD_MIN} characters`)
+    .max(PASSWORD_MAX, `Password must be at most ${PASSWORD_MAX} characters`),
+});
 
-  if (!key || password.length < MIN_PASSWORD_LENGTH) {
-    return null;
-  }
+export type RegisterInput = z.infer<typeof RegisterSchema>;
 
-  const configuredUsername = normalizeUsername(getAuthUsername());
-  const configuredPassword = getAuthPassword();
-  const defaultUsername = normalizeUsername(DEFAULT_AUTH_USERNAME);
-  const defaultPassword = DEFAULT_AUTH_PASSWORD;
-  const isDefaultAdminLogin =
-    (key === configuredUsername || key === defaultUsername) &&
-    (password === configuredPassword || password === defaultPassword);
+export type RegisterResult =
+  | { ok: true; user: { id: string; name: string } }
+  | { ok: false; error: "username_taken" };
 
+export async function registerUser(input: RegisterInput): Promise<RegisterResult> {
+  const key = normalizeUsername(input.username);
   const existing = await prisma.user.findUnique({ where: { username: key } });
+  if (existing) return { ok: false, error: "username_taken" };
 
-  if (existing) {
-    const ok = await bcrypt.compare(password, existing.passwordHash);
-    if (!ok && !isDefaultAdminLogin) return null;
-    return { id: existing.id, name: existing.displayName };
-  }
-
-  if (!isDefaultAdminLogin) {
-    const passwordHash = await bcrypt.hash(password, 10);
+  const passwordHash = await bcrypt.hash(input.password, 10);
+  try {
     const created = await prisma.user.create({
       data: {
         username: key,
-        displayName,
+        displayName: input.displayName || input.username.trim(),
         passwordHash,
       },
     });
-
-    return { id: created.id, name: created.displayName };
+    return { ok: true, user: { id: created.id, name: created.displayName } };
+  } catch (err) {
+    // Unique violation from a concurrent registration
+    if ((err as { code?: string })?.code === "P2002") {
+      return { ok: false, error: "username_taken" };
+    }
+    throw err;
   }
+}
 
-  const passwordHash = await bcrypt.hash(configuredPassword, 10);
-  const created = await prisma.user.create({
-    data: {
-      username: key,
-      displayName: displayName || DEFAULT_AUTH_USERNAME,
-      passwordHash,
-    },
-  });
+/** Verify credentials for an existing account. Never creates users. */
+export async function authenticateUser(
+  username: string,
+  password: string,
+): Promise<{ id: string; name: string } | null> {
+  const key = normalizeUsername(username);
+  if (!key || !password) return null;
 
-  return { id: created.id, name: created.displayName };
+  const user = await prisma.user.findUnique({ where: { username: key } });
+  if (!user) return null;
+
+  const ok = await bcrypt.compare(password, user.passwordHash);
+  if (!ok) return null;
+  return { id: user.id, name: user.displayName };
 }

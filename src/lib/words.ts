@@ -1,6 +1,8 @@
 import { Language, Prisma, ReviewResult } from "@/generated/prisma/client";
 
 export type WordFilters = {
+  /** Owner — always required so queries never cross accounts */
+  userId: string;
   q?: string;
   language?: Language;
   failedOnly?: boolean;
@@ -10,7 +12,7 @@ export type WordFilters = {
 };
 
 export function buildWordWhere(filters: WordFilters): Prisma.WordWhereInput {
-  const where: Prisma.WordWhereInput = {};
+  const where: Prisma.WordWhereInput = { userId: filters.userId };
 
   if (filters.language) where.language = filters.language;
   if (filters.failedOnly) where.isFailed = true;

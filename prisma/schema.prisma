@@ -44,10 +44,15 @@ model User {
   displayName  String
   passwordHash String
   createdAt    DateTime @default(now())
+
+  words        Word[]
 }
 
 model Word {
   id             String        @id @default(cuid())
+  /// Owner — every word belongs to exactly one user
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// Original user input (word or multi-word phrase)
   text           String
   /// Normalized key for dedupe (lowercase, trimmed, collapsed spaces)
@@ -81,7 +86,8 @@ model Word {
 
   reviews        Review[]
 
-  @@unique([lemma, language])
+  @@unique([userId, lemma, language])
+  @@index([userId])
   @@index([language])
   @@index([pos])
   @@index([isFailed])

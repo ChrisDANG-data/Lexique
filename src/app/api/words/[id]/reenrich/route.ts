@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getUserId, unauthorized } from "@/lib/session";
 import { enrichEntry } from "@/lib/llm";
 import { FrenchGender, Language, PartOfSpeech } from "@/generated/prisma/client";
 
@@ -8,8 +9,10 @@ export async function POST(
   ctx: { params: Promise<{ id: string }> },
 ) {
   try {
+    const userId = await getUserId();
+    if (!userId) return unauthorized();
     const { id } = await ctx.params;
-    const existing = await prisma.word.findUnique({ where: { id } });
+    const existing = await prisma.word.findFirst({ where: { id, userId } });
     if (!existing) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }

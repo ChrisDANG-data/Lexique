@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getUserId, unauthorized } from "@/lib/session";
 import { wordsToAnkiTsv, wordsToCsv } from "@/lib/import-export";
 import { buildWordWhere } from "@/lib/words";
 import { Language } from "@/generated/prisma/client";
 
 export async function GET(req: NextRequest) {
+  const userId = await getUserId();
+  if (!userId) return unauthorized();
   const sp = req.nextUrl.searchParams;
   const format = sp.get("format") === "anki" ? "anki" : "csv";
   const languageParam = sp.get("language");
@@ -15,6 +18,7 @@ export async function GET(req: NextRequest) {
 
   const words = await prisma.word.findMany({
     where: buildWordWhere({
+      userId,
       q: sp.get("q") ?? undefined,
       language,
       failedOnly: sp.get("failedOnly") === "1",

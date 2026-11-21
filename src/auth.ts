@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { getAuthSecret } from "@/lib/auth-defaults";
-import { authenticateOrRegister } from "@/lib/user-auth";
+import { authenticateUser } from "@/lib/user-auth";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -14,12 +14,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       async authorize(credentials) {
         const username = credentials?.username;
         const password = credentials?.password;
-
         if (typeof username !== "string" || typeof password !== "string") {
           return null;
         }
-
-        return authenticateOrRegister(username, password);
+        return authenticateUser(username, password);
       },
     }),
   ],
@@ -39,6 +37,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     session({ session, token }) {
       if (session.user) {
+        if (token.sub) session.user.id = token.sub;
         session.user.name = token.name ?? session.user.name;
       }
       return session;

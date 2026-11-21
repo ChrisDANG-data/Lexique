@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { getUserId, unauthorized } from "@/lib/session";
 import { parseAnkiTsv, parseCsvImport } from "@/lib/import-export";
 import { normalizeLemma } from "@/lib/normalize";
 import { FrenchGender, Language, PartOfSpeech } from "@/generated/prisma/client";
@@ -12,6 +13,8 @@ const BodySchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const userId = await getUserId();
+    if (!userId) return unauthorized();
     const body = BodySchema.parse(await req.json());
     const rows =
       body.format === "csv" ? parseCsvImport(body.content) : parseAnkiTsv(body.content);
@@ -23,8 +26,9 @@ export async function POST(req: NextRequest) {
       const lemma = normalizeLemma(row.text);
 
       await prisma.word.upsert({
-        where: { lemma_language: { lemma, language } },
+        where: { userId_lemma_language: { userId, lemma, language } },
         create: {
+          userId,
           text: row.text.trim(),
           lemma,
           language,

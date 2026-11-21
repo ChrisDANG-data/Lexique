@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { getUserId, unauthorized } from "@/lib/session";
 import { FrenchGender, PartOfSpeech } from "@/generated/prisma/client";
 import { normalizeLemma } from "@/lib/normalize";
 
@@ -8,8 +9,10 @@ export async function GET(
   _req: NextRequest,
   ctx: { params: Promise<{ id: string }> },
 ) {
+  const userId = await getUserId();
+  if (!userId) return unauthorized();
   const { id } = await ctx.params;
-  const word = await prisma.word.findUnique({ where: { id } });
+  const word = await prisma.word.findFirst({ where: { id, userId } });
   if (!word) return NextResponse.json({ error: "not_found" }, { status: 404 });
   return NextResponse.json({ word });
 }
@@ -48,7 +51,11 @@ export async function PATCH(
   ctx: { params: Promise<{ id: string }> },
 ) {
   try {
+    const userId = await getUserId();
+    if (!userId) return unauthorized();
     const { id } = await ctx.params;
+    const owned = await prisma.word.findFirst({ where: { id, userId }, select: { id: true } });
+    if (!owned) return NextResponse.json({ error: "not_found" }, { status: 404 });
     const body = PatchSchema.parse(await req.json());
 
     const data: Record<string, unknown> = {};
@@ -82,7 +89,10 @@ export async function DELETE(
   _req: NextRequest,
   ctx: { params: Promise<{ id: string }> },
 ) {
+  const userId = await getUserId();
+  if (!userId) return unauthorized();
   const { id } = await ctx.params;
-  await prisma.word.delete({ where: { id } });
+  const { count } = await prisma.word.deleteMany({ where: { id, userId } });
+  if (count === 0) return NextResponse.json({ error: "not_found" }, { status: 404 });
   return NextResponse.json({ ok: true });
 }

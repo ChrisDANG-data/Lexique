@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getUserId, unauthorized } from "@/lib/session";
 import { buildWordWhere, SESSION_SIZE, toStudyPrompt } from "@/lib/words";
 import { PartOfSpeech } from "@/generated/prisma/client";
 
 /** Build a 20-card session: failed first, then due, then newest. */
 export async function GET(req: NextRequest) {
+  const userId = await getUserId();
+  if (!userId) return unauthorized();
   const sp = req.nextUrl.searchParams;
   const language =
     sp.get("language") === "EN" || sp.get("language") === "FR"
@@ -13,7 +16,7 @@ export async function GET(req: NextRequest) {
   const pos = sp.get("pos");
   const tag = sp.get("tag") ?? undefined;
   const q = sp.get("q") ?? undefined;
-  const baseWhere = buildWordWhere({ language: language as any, tag, q });
+  const baseWhere = buildWordWhere({ userId, language: language as any, tag, q });
 
   if (pos && Object.values(PartOfSpeech).includes(pos as PartOfSpeech)) {
     baseWhere.pos = pos as PartOfSpeech;

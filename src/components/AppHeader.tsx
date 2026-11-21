@@ -1,6 +1,5 @@
-"use client";
-
 import Link from "next/link";
+import { SignOutButton } from "@/components/SignOutButton";
 
 const nav = [
   { href: "/", label: "Add" },
@@ -9,7 +8,10 @@ const nav = [
   { href: "/import-export", label: "Import / Export" },
 ];
 
-export function AppHeader() {
+const linkClass =
+  "rounded-md px-3 py-1.5 text-sm font-medium text-ink-soft transition hover:bg-paper-deep hover:text-ink";
+
+export function AppHeader({ userName }: { userName: string | null }) {
   return (
     <header className="border-b border-line/70 bg-paper/70 backdrop-blur-sm">
       <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
@@ -22,17 +24,35 @@ export function AppHeader() {
           </p>
         </Link>
 
-        <nav className="flex flex-wrap items-center gap-1">
-          {nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="rounded-md px-3 py-1.5 text-sm font-medium text-ink-soft transition hover:bg-paper-deep hover:text-ink"
-            >
-              {item.label}
+        {userName ? (
+          <div className="flex flex-wrap items-center gap-1">
+            <nav className="flex flex-wrap items-center gap-1">
+              {nav.map((item) => (
+                <Link key={item.href} href={item.href} className={linkClass}>
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+            <span className="ml-2 text-sm text-ink-soft" title="Signed in as">
+              {userName}
+            </span>
+            <span className="ml-2">
+              <SignOutButton />
+            </span>
+          </div>
+        ) : (
+          <nav className="flex items-center gap-1">
+            <Link href="/login" className={linkClass}>
+              Sign in
             </Link>
-          ))}
-        </nav>
+            <Link
+              href="/register"
+              className="rounded-md border border-line bg-paper px-3 py-1.5 text-sm font-semibold text-ink transition hover:bg-paper-deep"
+            >
+              Register
+            </Link>
+          </nav>
+        )}
       </div>
     </header>
   );

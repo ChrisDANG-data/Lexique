@@ -11,7 +11,7 @@ Learn French and English vocabulary with LLM enrichment, PostgreSQL storage, fla
 ## Setup
 
 1. Copy `.env.example` to `.env`.
-2. Set `DATABASE_URL` (Neon), `AUTH_SECRET` / `AUTH_USERNAME` / `AUTH_PASSWORD`, and `LLM_*`.
+2. Set `DATABASE_URL` (Neon), `AUTH_SECRET`, and `LLM_*`.
 3. Install and migrate:
 
 ```bash
@@ -20,7 +20,7 @@ npx prisma migrate dev
 npm run dev
 ```
 
-Open the app → sign in at `/login`.
+Open the app → create an account at `/register` (or sign in at `/login`).
 
 For a local LLM with Ollama:
 
@@ -31,13 +31,14 @@ ollama pull llama3.2
 
 ## Auth
 
-Accounts are stored in the database.
+Each user has their own account and their own vocabulary list, study progress and review history.
 
-- **Existing username** → sign in with your password  
-- **New username** → enter username + password; account is **created automatically** on first sign-in  
-- Suggested first account: `admin` / `lexique` (pre-filled on `/login`)
+- **Register** at `/register`: username (3–32 chars: letters, numbers, `.` `-` `_`), optional display name, password (8+ chars). Passwords are stored as bcrypt hashes.
+- **Sign in** at `/login`. Unknown usernames are rejected — accounts are only created via registration.
+- All pages and API routes require a session (enforced in `src/proxy.ts` and in each route handler); every word query is scoped to the signed-in user.
+- Words that existed before per-user accounts were assigned to the `admin` user by the `word_owner` migration.
 
-Optional: set `AUTH_SECRET` on Vercel for a custom JWT secret.
+**Required in production:** set `AUTH_SECRET` (e.g. `npx auth secret`). A built-in fallback is used only in development.
 
 ## V1 features
 

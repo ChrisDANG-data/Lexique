@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { getUserId, unauthorized } from "@/lib/session";
 import { answersMatch } from "@/lib/normalize";
 import { applySrs } from "@/lib/srs";
 import { ReviewResult } from "@/generated/prisma/client";
@@ -12,8 +13,10 @@ const BodySchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const userId = await getUserId();
+    if (!userId) return unauthorized();
     const body = BodySchema.parse(await req.json());
-    const word = await prisma.word.findUnique({ where: { id: body.wordId } });
+    const word = await prisma.word.findFirst({ where: { id: body.wordId, userId } });
     if (!word) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
